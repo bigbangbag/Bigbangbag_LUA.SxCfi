@@ -1,0 +1,71 @@
+-- TRACER STRUCTURE
+
+StarterGui
+│── ESP_Script (LocalScript)
+
+-- CODE
+
+local RunService = game:GetService("RunService")
+local Players = game:GetService("Players")
+local Camera = workspace.CurrentCamera
+local LocalPlayer = Players.LocalPlayer
+
+local ESP_Color = Color3.fromRGB(255, 0, 0) -- Red
+local Tracer_Origin = Vector2.new(Camera.ViewportSize.X / 2, Camera.ViewportSize.Y) -- Bottom center
+
+local function CreateESP(player)
+    if player == LocalPlayer then return end -- Skip the local player
+
+    local ESP_Box = Drawing.new("Square")
+    ESP_Box.Color = ESP_Color
+    ESP_Box.Thickness = 2
+    ESP_Box.Filled = false
+    ESP_Box.Visible = false
+
+    local ESP_Line = Drawing.new("Line")
+    ESP_Line.Color = ESP_Color
+    ESP_Line.Thickness = 1.5
+    ESP_Line.Visible = false
+
+    local function UpdateESP()
+        if player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            local rootPart = player.Character.HumanoidRootPart
+            local head = player.Character:FindFirstChild("Head")
+            if rootPart and head then
+                local screenPos, onScreen = Camera:WorldToViewportPoint(rootPart.Position)
+
+                if onScreen then
+                    -- Box ESP
+                    local headPos = Camera:WorldToViewportPoint(head.Position + Vector3.new(0, 0.5, 0))
+                    local footPos = Camera:WorldToViewportPoint(rootPart.Position - Vector3.new(0, 3, 0))
+
+                    local height = footPos.Y - headPos.Y
+                    local width = height / 2
+
+                    ESP_Box.Size = Vector2.new(width, height)
+                    ESP_Box.Position = Vector2.new(headPos.X - width / 2, headPos.Y)
+                    ESP_Box.Visible = true
+
+                    -- Tracer Line
+                    ESP_Line.From = Tracer_Origin
+                    ESP_Line.To = Vector2.new(screenPos.X, screenPos.Y)
+                    ESP_Line.Visible = true
+                else
+                    ESP_Box.Visible = false
+                    ESP_Line.Visible = false
+                end
+            end
+        else
+            ESP_Box.Visible = false
+            ESP_Line.Visible = false
+        end
+    end
+
+    RunService.RenderStepped:Connect(UpdateESP)
+end
+
+for _, player in pairs(Players:GetPlayers()) do
+    CreateESP(player)
+end
+
+Players.PlayerAdded:Connect(CreateESP) -- Apply ESP when new players join
